@@ -1,0 +1,10 @@
+ktor:
+  application:
+    modules:
+      - io.sn.aetherium.GenesisKt.module
+  deployment:
+    host: 127.0.0.1
+    port: 8080
+    watch:
+      - classes
+      - resources
