@@ -10,9 +10,9 @@ Content-Type: application/json
 {
   "id": "arctapjump",
   "args": {
-    "globalOffset": "260279",
-    "fps": "240",
-    "bpm": "126",
+    "globalOffset": 260279,
+    "fps": 240,
+    "bpm": 126.0,
     "timingList": [
       78095,
       78571,
