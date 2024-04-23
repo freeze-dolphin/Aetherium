@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "1.9.22"
+    kotlin("plugin.serialization") version "1.9.23"
 }
 
 group = "org.example"
@@ -17,13 +18,23 @@ repositories {
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
-    implementation(project(":aetherium"))
-    implementation("com.github.freeze-dolphin:aff-compose:v2.0.0")
+    compileOnly(project(":aetherium"))
+
+    compileOnly("com.github.freeze-dolphin:aff-compose:v2.0.0")
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.jar {
+    manifest {
+        attributes(
+            "Aetherium-Entry" to "org.example.aetheriumshard.ExampleShard",
+        )
+    }
+}
+
 kotlin {
     jvmToolchain(17)
 }

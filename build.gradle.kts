@@ -9,6 +9,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.23"
     id("io.ktor.plugin") version "2.3.10"
 
+    java
     application
 }
 
@@ -33,6 +34,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests-jvm")
 
     implementation("org.reflections:reflections:0.10.2")
+
     implementation("com.github.freeze-dolphin:aff-compose:${affComposeVersion}")
 }
 
@@ -46,7 +48,8 @@ application {
     mainClass.set("io.sn.aetherium.GenesisKt")
 
     val isDevelopment = true
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
+    applicationDefaultJvmArgs =
+        listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 tasks.named<Test>("test") {

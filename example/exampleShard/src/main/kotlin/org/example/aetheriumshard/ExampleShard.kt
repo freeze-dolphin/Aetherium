@@ -11,10 +11,10 @@ class ExampleShard : AetheriumShard() {
 
     override val digestionInfo: ShardDigestionArgsInfo
         get() = ShardDigestionArgsInfo {
-            addInfo("timingList", ShardDigestionArgsInfo.Item.Type.STRING)
+            addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
         }
 
-    override fun load() {
+    override fun onRegister() {
         // Being called when loading this plugin
 
         // You don't need to call `register` unless you set `manualLoad` to true in @ShardInfo
@@ -24,7 +24,7 @@ class ExampleShard : AetheriumShard() {
     override fun generator(controllerBrand: ControllerBrand, args: ShardDigestionArgs): Difficulty.() -> Unit = {
         //  Being called when generating aff
 
-        val timingList = digestString("timingList").split(",").map { it.toLong() }
+        val timingList = digestLongList("timingList")
 
         timingList.forEach {
             quickArctap(it, Random.nextDouble(-0.5, 1.5) pos 0.5)

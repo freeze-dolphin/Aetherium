@@ -6,15 +6,15 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.sn.aetherium.implementations.shards.ArcTapJumpShard
 import io.sn.aetherium.objects.*
-import io.sn.aetherium.objects.exceptions.AetheriumError
-import io.sn.aetherium.objects.exceptions.AetheriumHaventConnectException
-import io.sn.aetherium.objects.exceptions.MissingArgumentException
-import io.sn.aetherium.objects.exceptions.NonAetheriumShardException
-import kotlinx.serialization.json.Json
+import io.sn.aetherium.objects.exceptions.*
+import io.sn.aetherium.utils.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.*
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
+import java.util.jar.JarFile
+import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotations
 import kotlin.reflect.full.isSubclassOf
 import kotlin.system.exitProcess
@@ -32,28 +32,89 @@ var controllerBrand = ControllerBrand("Unknown", "0.0")
 
 @Suppress("unused")
 fun Application.module() {
-    run { // start loading plugins
+    var pluginCounterInternal = 0
+    var pluginCounterExternal = 0
+    var pluginCounterInternalErr = 0
+    var pluginCounterExternalErr = 0
+    var pluginCounterInternalMan = 0
+    var pluginCounterExternalMan = 0
+
+    run { // load internal plugins
+        file(".", "plugins", "internal").let {
+            if (!it.exists()) it.mkdirs()
+        }
         val reflection = Reflections("io.sn.aetherium.implementations.shards")
 
         val allClasses = reflection.getAll(Scanners.SubTypes).map { Class.forName(it) }
         allClasses.forEach { clazz ->
-            if (clazz.kotlin.isSubclassOf(AetheriumShard::class)) {
-                val annot = clazz.kotlin.findAnnotations(ShardInfo::class)
-                if (annot.isNotEmpty()) {
-                    val id = annot.first().id
-                    val manual = annot.first().manualLoad
+            try {
+                if (clazz.kotlin.isSubclassOf(AetheriumShard::class) && clazz.kotlin.findAnnotations(ShardInfo::class).isNotEmpty()) {
+                    @Suppress("UNCHECKED_CAST")
+                    when (loadPlugin(clazz.kotlin as KClass<out AetheriumShard>)) {
+                        PluginLoadState.MANUAL -> {
+                            pluginCounterInternalMan++
+                        }
 
-                    if (manual) return@forEach
-                    val shard = clazz.constructors.first().newInstance() as AetheriumShard
+                        PluginLoadState.SUCCESSFUL -> {
+                            pluginCounterInternal++
+                        }
 
-                    log.info("Registering internal plugin: $id")
-                    register(id, shard.javaClass.kotlin, shard.digestionInfo)
-                    shard.load()
+                        PluginLoadState.FAILED -> {
+                            pluginCounterInternalErr++
+                        }
+
+                        else -> {}
+                    }
                 }
+            } catch (e: Exception) {
+                log.error(e.stackTraceToString())
+                pluginCounterInternalErr++
+                return@forEach
             }
         }
+    }
 
-        // end loading plugins
+    run { // load external plugins
+        val pluginFolder = file(".", "plugins")
+        if (!pluginFolder.exists()) pluginFolder.mkdirs()
+        pluginFolder.listFiles()?.forEach {
+            try {
+                if (it.name.endsWith(".jar")) {
+                    val jarfile = JarFile(it)
+                    val entry = readAetheriumEntry(jarfile)
+                    val entryClass = loadClass(it, entry).kotlin
+                    when (loadPlugin(entryClass)) {
+                        PluginLoadState.MANUAL -> {
+                            pluginCounterExternalMan++
+                        }
+
+                        PluginLoadState.SUCCESSFUL -> {
+                            pluginCounterExternal++
+                        }
+
+                        PluginLoadState.FAILED -> {
+                            pluginCounterExternalErr++
+                        }
+
+                        else -> {}
+                    }
+                }
+            } catch (e: Exception) {
+                log.error(e.stackTraceToString())
+                pluginCounterExternalErr++
+                return@forEach
+            }
+        }
+    }
+
+    run { // done with loading
+        val total = pluginCounterInternal + pluginCounterExternal
+        val pl = if (total == 1) "" else "s"
+        log.info("")
+        log.info("Done! (with $total plugin${pl} loaded)")
+        log.info(" ├ Internal: [Load: $pluginCounterInternal | Err: $pluginCounterInternalErr | Manual: $pluginCounterInternalMan]")
+        log.info(" └ External: [Load: $pluginCounterExternal | Err: $pluginCounterExternalErr | Manual: $pluginCounterExternalMan]")
+        log.info("")
     }
 
     install(ContentNegotiation) {
@@ -75,10 +136,61 @@ fun Application.module() {
         post("/generate") {
             try {
                 if (controllerBrand.name == "Unknown") throw AetheriumHaventConnectException("Please connect first to submit controller brand")
-                val shardDigestion = call.receive<ShardDigestion>()
-                val shardDigestionArgs = shardDigestion.args
+                val recv = json.parseToJsonElement(call.receiveText()).jsonObject
+                val id = recv["id"]!!.jsonPrimitive.content
+                val jsonArgs = recv["args"]!!.jsonObject
 
-                val (clazz, info) = lookUp(shardDigestion.id)
+                val (clazz, info) = lookUp(id)
+
+                val shardArgs = mutableMapOf<String, ShardDigestion.Union>()
+                info.items.forEach {
+                    val union = ShardDigestion.Union()
+                    when (it.type) {
+                        ShardDigestionArgsInfo.Item.Type.STRING ->
+                            union.string = jsonArgs[it.name]!!.jsonPrimitive.content
+
+                        ShardDigestionArgsInfo.Item.Type.INT ->
+                            union.int = jsonArgs[it.name]!!.jsonPrimitive.int
+
+                        ShardDigestionArgsInfo.Item.Type.LONG ->
+                            union.long = jsonArgs[it.name]!!.jsonPrimitive.long
+
+                        ShardDigestionArgsInfo.Item.Type.DOUBLE ->
+                            union.double = jsonArgs[it.name]!!.jsonPrimitive.double
+
+                        ShardDigestionArgsInfo.Item.Type.BOOLEAN ->
+                            union.boolean = jsonArgs[it.name]!!.jsonPrimitive.boolean
+
+                        ShardDigestionArgsInfo.Item.Type.STRING_LIST ->
+                            union.stringList = jsonArgs[it.name]!!.jsonArray.map { a ->
+                                a.jsonPrimitive.content
+                            }
+
+                        ShardDigestionArgsInfo.Item.Type.INT_LIST ->
+                            union.intList = jsonArgs[it.name]!!.jsonArray.map { a ->
+                                a.jsonPrimitive.int
+                            }
+
+                        ShardDigestionArgsInfo.Item.Type.LONG_LIST ->
+                            union.longList = jsonArgs[it.name]!!.jsonArray.map { a ->
+                                a.jsonPrimitive.long
+                            }
+
+                        ShardDigestionArgsInfo.Item.Type.DOUBLE_LIST ->
+                            union.doubleList = jsonArgs[it.name]!!.jsonArray.map { a ->
+                                a.jsonPrimitive.double
+                            }
+
+                        ShardDigestionArgsInfo.Item.Type.BOOLEAN_LIST ->
+                            union.booleanList = jsonArgs[it.name]!!.jsonArray.map { a ->
+                                a.jsonPrimitive.boolean
+                            }
+                    }
+                    shardArgs[it.name] = union
+                }
+
+                val shardDigestion = ShardDigestion(id, shardArgs)
+                val shardDigestionArgs = shardDigestion.args
 
                 if (!info.items.all {
                         shardDigestion.args.containsKey(it.name)
@@ -89,7 +201,24 @@ fun Application.module() {
 
                 if (clazz.isSubclassOf(AetheriumShard::class)) {
                     val shard: AetheriumShard = clazz.constructors.first().call()
-                    shard.init(controllerBrand, shardDigestionArgs)
+                    val configFilePath = if (shard.isInternal) {
+                        file(".", "plugins", "internal", "${id}.json")
+                    } else {
+                        file(".", "plugins", "${id}.json")
+                    }
+                    val configFile = configFilePath.apply {
+                        if (!this.exists()) {
+                            this.createNewFile()
+                            this.writeText(Json.encodeToString(mapOf<String, String>()))
+                        }
+                    }
+
+                    if (!shard.inited) shard.init(
+                        id,
+                        controllerBrand,
+                        shardDigestionArgs,
+                        configFile
+                    )
                     call.respond(shard.generate().chart)
                 } else {
                     throw NonAetheriumShardException("This is not a runnable Aetherium shard")

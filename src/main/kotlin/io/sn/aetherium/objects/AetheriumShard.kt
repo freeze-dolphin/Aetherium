@@ -6,21 +6,38 @@ import com.tairitsu.compose.arcaea.mapSet
 import io.sn.aetherium.objects.exceptions.MissingArgumentException
 import io.sn.aetherium.objects.exceptions.ShardHaventInitException
 import kotlinx.serialization.Serializable
+import java.io.File
 import kotlin.reflect.KClass
+
 
 @Target(AnnotationTarget.CLASS)
 @Retention
 @MustBeDocumented
 annotation class ShardInfo(val id: String, val manualLoad: Boolean = false)
 
-typealias ShardDigestionArgs = MutableMap<String, String>
 
 @Serializable
 data class ShardDigestion(
     val id: String,
     @Serializable
     val args: ShardDigestionArgs
-)
+) {
+    @Serializable
+    class Union {
+        lateinit var string: String
+        var int: Int = 0
+        var long: Long = 0
+        var double: Double = 0.0
+        var boolean: Boolean = false
+        lateinit var stringList: List<String>
+        lateinit var intList: List<Int>
+        lateinit var longList: List<Long>
+        lateinit var doubleList: List<Double>
+        lateinit var booleanList: List<Boolean>
+    }
+}
+
+typealias ShardDigestionArgs = MutableMap<String, ShardDigestion.Union>
 
 data class ShardDigestionArgsInfo(
     val items: MutableList<Item>
@@ -42,29 +59,41 @@ data class ShardDigestionArgsInfo(
     ) {
 
         enum class Type {
-            STRING, INT, LONG, DOUBLE, BOOLEAN
+            STRING, INT, LONG, DOUBLE, BOOLEAN,
+            STRING_LIST, INT_LIST, LONG_LIST, DOUBLE_LIST, BOOLEAN_LIST,
         }
     }
 
+
 }
+
 
 interface ChartGenerator {
     fun generator(controllerBrand: ControllerBrand, args: ShardDigestionArgs): Difficulty.() -> Unit
 
-    fun load() {}
+    fun onRegister() {}
+
+    val isInternal: Boolean
 }
 
 abstract class AetheriumShard : ChartGenerator {
 
     private lateinit var args: ShardDigestionArgs
     private lateinit var controllerBrand: ControllerBrand
-    private var inited: Boolean = false
+    private lateinit var configFile: File
+    private lateinit var id: String
+    var inited: Boolean = false
 
     abstract val digestionInfo: ShardDigestionArgsInfo
 
-    fun init(controllerBrand: ControllerBrand, args: ShardDigestionArgs) {
+    override val isInternal: Boolean
+        get() = false
+
+    fun init(id: String, controllerBrand: ControllerBrand, args: ShardDigestionArgs, configFile: File) {
+        this.id = id
         this.controllerBrand = controllerBrand
         this.args = args
+        this.configFile = configFile
         inited = true
     }
 
@@ -98,19 +127,92 @@ abstract class AetheriumShard : ChartGenerator {
     fun digestString(argName: String): String {
         validateInit()
         if (args.containsKey(argName)) {
-            return args[argName]!!
+            return args[argName]!!.string
         } else {
             throw MissingArgumentException(argName)
         }
     }
 
-    fun digestLong(argName: String): Long = digestString(argName).toLong()
+    fun digestInt(argName: String): Int {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.int
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
 
-    fun digestInt(argName: String): Int = digestString(argName).toInt()
+    fun digestLong(argName: String): Long {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.long
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
 
-    fun digestDouble(argName: String): Double = digestString(argName).toDouble()
+    fun digestDouble(argName: String): Double {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.double
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
 
-    fun digestBoolean(argName: String): Boolean = digestString(argName).toBoolean()
+    fun digestBoolean(argName: String): Boolean {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.boolean
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
+
+    fun digestStringList(argName: String): List<String> {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.stringList
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
+
+    fun digestIntList(argName: String): List<Int> {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.intList
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
+
+    fun digestLongList(argName: String): List<Long> {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.longList
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
+
+    fun digestDoubleList(argName: String): List<Double> {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.doubleList
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
+
+    fun digestBooleanList(argName: String): List<Boolean> {
+        validateInit()
+        if (args.containsKey(argName)) {
+            return args[argName]!!.booleanList
+        } else {
+            throw MissingArgumentException(argName)
+        }
+    }
 
 }
 

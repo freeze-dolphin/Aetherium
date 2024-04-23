@@ -10,16 +10,18 @@ import io.sn.aetherium.utils.addAnimation
 import io.sn.aetherium.utils.linear
 
 @ShardInfo("arctapjump")
-class ArcTapJumpShard :
-    AetheriumShard() {
+class ArcTapJumpShard : AetheriumShard() {
+
+    override val isInternal: Boolean
+        get() = true
 
     override val digestionInfo: ShardDigestionArgsInfo
         get() = ShardDigestionArgsInfo {
             addInfo("globalOffset", ShardDigestionArgsInfo.Item.Type.LONG)
             addInfo("fps", ShardDigestionArgsInfo.Item.Type.INT)
             addInfo("bpm", ShardDigestionArgsInfo.Item.Type.INT)
-            addInfo("timingList", ShardDigestionArgsInfo.Item.Type.STRING)
-            addInfo("positionList", ShardDigestionArgsInfo.Item.Type.STRING)
+            addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
+            addInfo("positionList", ShardDigestionArgsInfo.Item.Type.DOUBLE_LIST)
             addInfo("control", ShardDigestionArgsInfo.Item.Type.STRING)
         }
 
@@ -30,13 +32,9 @@ class ArcTapJumpShard :
 
         val animBasicCfg = AnimationBasicConfigurtion(digestInt("fps"), digestDouble("bpm"), globalOffset + 1)
 
-        val timingList: List<Long> = digestString("timingList").split(",").map {
-            it.toLong()
-        }
+        val timingList: List<Long> = digestLongList("timingList")
 
-        val positionList: List<Double> = digestString("positionList").split(",").map {
-            it.toDouble()
-        }
+        val positionList: List<Double> = digestDoubleList("positionList")
 
         val control = digestString("control")
 

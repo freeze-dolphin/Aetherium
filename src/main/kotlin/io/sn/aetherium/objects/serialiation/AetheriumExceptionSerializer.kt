@@ -19,7 +19,7 @@ object AetheriumExceptionSerializer : KSerializer<Exception> {
     }
 
     override fun deserialize(decoder: Decoder): Exception {
-        TODO("No need to implement deserializer")
+        throw IllegalStateException("No need to implement deserializer")
     }
 
     override fun serialize(encoder: Encoder, value: Exception) {
