@@ -20,7 +20,7 @@ dependencies {
 
     compileOnly(project(":aetherium"))
 
-    compileOnly("com.github.freeze-dolphin:aff-compose:v2.0.0")
+    compileOnly("com.github.freeze-dolphin:aff-compose:5c46cf1187")
 }
 
 tasks.test {
