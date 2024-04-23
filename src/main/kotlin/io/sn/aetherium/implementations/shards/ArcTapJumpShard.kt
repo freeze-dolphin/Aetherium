@@ -19,7 +19,7 @@ class ArcTapJumpShard : AetheriumShard() {
         get() = ShardDigestionArgsInfo {
             addInfo("globalOffset", ShardDigestionArgsInfo.Item.Type.LONG)
             addInfo("fps", ShardDigestionArgsInfo.Item.Type.INT)
-            addInfo("bpm", ShardDigestionArgsInfo.Item.Type.INT)
+            addInfo("bpm", ShardDigestionArgsInfo.Item.Type.DOUBLE)
             addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
             addInfo("positionList", ShardDigestionArgsInfo.Item.Type.DOUBLE_LIST)
             addInfo("control", ShardDigestionArgsInfo.Item.Type.STRING)
