@@ -25,18 +25,17 @@ class ArcTapJumpShard : AetheriumShard() {
             addInfo("control", ShardDigestionArgsInfo.Item.Type.STRING)
         }
 
-    override fun generator(
-        controllerBrand: ControllerBrand, args: ShardDigestionArgs
-    ): Difficulty.() -> Unit = {
+    override fun generator(): Difficulty.() -> Unit = {
         val globalOffset = digestLong("globalOffset")
-
-        val animBasicCfg = AnimationBasicConfigurtion(digestInt("fps"), digestDouble("bpm"), globalOffset + 1)
-
         val timingList: List<Long> = digestLongList("timingList")
-
         val positionList: List<Double> = digestDoubleList("positionList")
-
         val control = digestString("control")
+
+        val animBasicCfg = AnimationBasicConfigurtion(
+            digestInt("fps"),
+            digestDouble("bpm"),
+            globalOffset + 1
+        )
 
         val controlMap = mutableMapOf<Int, Long>()
         control.split(";").forEach {
