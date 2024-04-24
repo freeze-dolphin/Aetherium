@@ -5,7 +5,6 @@ import com.tairitsu.compose.arcaea.future
 import com.tairitsu.compose.arcaea.mapSet
 import io.sn.aetherium.objects.exceptions.MissingArgumentException
 import io.sn.aetherium.objects.exceptions.ShardHaventInitException
-import kotlinx.serialization.Serializable
 import java.io.File
 import kotlin.reflect.KClass
 
@@ -13,16 +12,27 @@ import kotlin.reflect.KClass
 @Target(AnnotationTarget.CLASS)
 @Retention
 @MustBeDocumented
-annotation class ShardInfo(val id: String, val manualLoad: Boolean = false)
+annotation class ShardInfo(
+    /**
+     * This field is used to identify your shard with others
+     */
+    val id: String,
+
+    /** Whether your shard needs a configuration file
+     */
+    val hasConfig: Boolean = false,
+
+    /** Whether your shard will handle the loading and init itself
+     */
+    val manualLoad: Boolean = false
+)
 
 
-@Serializable
 data class ShardDigestion(
     val id: String,
-    @Serializable
     val args: ShardDigestionArgs
 ) {
-    @Serializable
+
     class Union {
         lateinit var string: String
         var int: Int = 0
@@ -47,6 +57,9 @@ data class ShardDigestionArgsInfo(
         closure.invoke(this)
     }
 
+    /**
+     * Declare a new argument
+     */
     fun addInfo(name: String, type: Item.Type) {
         items.add(Item(name, type))
     }
@@ -63,24 +76,27 @@ data class ShardDigestionArgsInfo(
             STRING_LIST, INT_LIST, LONG_LIST, DOUBLE_LIST, BOOLEAN_LIST,
         }
     }
-
-
 }
 
 
 interface ChartGenerator {
-    fun generator(controllerBrand: ControllerBrand, args: ShardDigestionArgs): Difficulty.() -> Unit
+    fun generator(): Difficulty.() -> Unit
 
     fun onRegister() {}
 
+    /**
+     * Only shards defined within Aetherium should be internal!
+     */
     val isInternal: Boolean
+        get() = false
 }
 
+@Suppress("UNUSED")
 abstract class AetheriumShard : ChartGenerator {
 
     private lateinit var args: ShardDigestionArgs
     private lateinit var controllerBrand: ControllerBrand
-    private lateinit var configFile: File
+    private var configFile: File? = null
     private lateinit var id: String
     var inited: Boolean = false
 
@@ -89,12 +105,15 @@ abstract class AetheriumShard : ChartGenerator {
     override val isInternal: Boolean
         get() = false
 
-    fun init(id: String, controllerBrand: ControllerBrand, args: ShardDigestionArgs, configFile: File) {
+    fun init(id: String, controllerBrand: ControllerBrand, configFile: File?) {
         this.id = id
         this.controllerBrand = controllerBrand
-        this.args = args
         this.configFile = configFile
         inited = true
+    }
+
+    fun feed(args: ShardDigestionArgs) {
+        this.args = args
     }
 
     private fun validateInit() {
@@ -109,7 +128,7 @@ abstract class AetheriumShard : ChartGenerator {
             difficulties.future {
                 mapSet {
                     difficulties.future {
-                        generator(controllerBrand, args).invoke(this)
+                        generator().invoke(this)
                         result = this
                     }
                 }
@@ -218,11 +237,16 @@ abstract class AetheriumShard : ChartGenerator {
 
 private val registerTable = hashMapOf<String, Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo>>()
 
+private val shardInstanceTable = hashMapOf<String, AetheriumShard>()
+
 fun register(id: String, clazz: KClass<out AetheriumShard>, info: ShardDigestionArgsInfo) {
     registerTable[id] = Pair(clazz, info)
 }
 
-
-fun lookUp(id: String): Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo> {
+fun lookUpShard(id: String): Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo> {
     return registerTable[id] ?: throw IllegalArgumentException("Unable to find a shard in this id")
+}
+
+fun getOrPutInstance(id: String, newInstance: AetheriumShard): AetheriumShard {
+    return shardInstanceTable.getOrPut(id) { newInstance }
 }
