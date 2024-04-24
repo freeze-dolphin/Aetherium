@@ -8,6 +8,8 @@ import io.sn.aetherium.objects.exceptions.ShardHaventInitException
 import java.io.File
 import kotlin.reflect.KClass
 
+@RequiresOptIn(message = "Do not use in scenarios except testing")
+internal annotation class TestOnlyApi
 
 @Target(AnnotationTarget.CLASS)
 @Retention
@@ -39,11 +41,53 @@ data class ShardDigestion(
         var long: Long = 0
         var double: Double = 0.0
         var boolean: Boolean = false
-        lateinit var stringList: List<String>
-        lateinit var intList: List<Int>
-        lateinit var longList: List<Long>
-        lateinit var doubleList: List<Double>
-        lateinit var booleanList: List<Boolean>
+        lateinit var stringArr: Array<String>
+        lateinit var intArr: Array<Int>
+        lateinit var longArr: Array<Long>
+        lateinit var doubleArr: Array<Double>
+        lateinit var booleanArr: Array<Boolean>
+
+        constructor()
+
+        constructor(string: String) {
+            this.string = string
+        }
+
+        constructor(int: Int) {
+            this.int = int
+        }
+
+        constructor(long: Long) {
+            this.long = long
+        }
+
+        constructor(double: Double) {
+            this.double = double
+        }
+
+        constructor(boolean: Boolean) {
+            this.boolean = boolean
+        }
+
+        constructor(stringArr: Array<String>) {
+            this.stringArr = stringArr
+        }
+
+        constructor(intArr: Array<Int>) {
+            this.intArr = intArr
+        }
+
+        constructor(longArr: Array<Long>) {
+            this.longArr = longArr
+        }
+
+        constructor(doubleArr: Array<Double>) {
+            this.doubleArr = doubleArr
+        }
+
+        constructor(booleanArr: Array<Boolean>) {
+            this.booleanArr = booleanArr
+        }
     }
 }
 
@@ -73,7 +117,7 @@ data class ShardDigestionArgsInfo(
 
         enum class Type {
             STRING, INT, LONG, DOUBLE, BOOLEAN,
-            STRING_LIST, INT_LIST, LONG_LIST, DOUBLE_LIST, BOOLEAN_LIST,
+            STRING_ARRAY, INT_ARRAY, LONG_ARRAY, DOUBLE_ARRAY, BOOLEAN_ARRAY,
         }
     }
 }
@@ -82,7 +126,9 @@ data class ShardDigestionArgsInfo(
 interface ChartGenerator {
     fun generator(): Difficulty.() -> Unit
 
-    fun onRegister() {}
+    fun onGenesis() {}
+
+    fun onTermination() {}
 
     /**
      * Only shards defined within Aetherium should be internal!
@@ -105,14 +151,21 @@ abstract class AetheriumShard : ChartGenerator {
     override val isInternal: Boolean
         get() = false
 
-    fun init(id: String, controllerBrand: ControllerBrand, configFile: File?) {
+    fun init(id: String, configFile: File?) {
         this.id = id
-        this.controllerBrand = controllerBrand
         this.configFile = configFile
         inited = true
     }
 
-    fun feed(args: ShardDigestionArgs) {
+    @TestOnlyApi
+    fun testInit() {
+        this.id = "faked"
+        this.configFile = null
+        inited = true
+    }
+
+    fun feed(controllerBrand: ControllerBrand, args: ShardDigestionArgs) {
+        this.controllerBrand = controllerBrand
         this.args = args
     }
 
@@ -188,46 +241,46 @@ abstract class AetheriumShard : ChartGenerator {
         }
     }
 
-    fun digestStringList(argName: String): List<String> {
+    fun digestStringList(argName: String): Array<String> {
         validateInit()
         if (args.containsKey(argName)) {
-            return args[argName]!!.stringList
+            return args[argName]!!.stringArr
         } else {
             throw MissingArgumentException(argName)
         }
     }
 
-    fun digestIntList(argName: String): List<Int> {
+    fun digestIntList(argName: String): Array<Int> {
         validateInit()
         if (args.containsKey(argName)) {
-            return args[argName]!!.intList
+            return args[argName]!!.intArr
         } else {
             throw MissingArgumentException(argName)
         }
     }
 
-    fun digestLongList(argName: String): List<Long> {
+    fun digestLongArray(argName: String): Array<Long> {
         validateInit()
         if (args.containsKey(argName)) {
-            return args[argName]!!.longList
+            return args[argName]!!.longArr
         } else {
             throw MissingArgumentException(argName)
         }
     }
 
-    fun digestDoubleList(argName: String): List<Double> {
+    fun digestDoubleArray(argName: String): Array<Double> {
         validateInit()
         if (args.containsKey(argName)) {
-            return args[argName]!!.doubleList
+            return args[argName]!!.doubleArr
         } else {
             throw MissingArgumentException(argName)
         }
     }
 
-    fun digestBooleanList(argName: String): List<Boolean> {
+    fun digestBooleanList(argName: String): Array<Boolean> {
         validateInit()
         if (args.containsKey(argName)) {
-            return args[argName]!!.booleanList
+            return args[argName]!!.booleanArr
         } else {
             throw MissingArgumentException(argName)
         }
@@ -235,18 +288,26 @@ abstract class AetheriumShard : ChartGenerator {
 
 }
 
-private val registerTable = hashMapOf<String, Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo>>()
+object AetheriumCache {
 
-private val shardInstanceTable = hashMapOf<String, AetheriumShard>()
+    private val registerTable = hashMapOf<String, Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo>>()
 
-fun register(id: String, clazz: KClass<out AetheriumShard>, info: ShardDigestionArgsInfo) {
-    registerTable[id] = Pair(clazz, info)
-}
+    private val shardInstanceTable = hashMapOf<String, AetheriumShard>()
 
-fun lookUpShard(id: String): Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo> {
-    return registerTable[id] ?: throw IllegalArgumentException("Unable to find a shard in this id")
-}
+    fun register(id: String, clazz: KClass<out AetheriumShard>, info: ShardDigestionArgsInfo) {
+        registerTable[id] = Pair(clazz, info)
+    }
 
-fun getOrPutInstance(id: String, newInstance: AetheriumShard): AetheriumShard {
-    return shardInstanceTable.getOrPut(id) { newInstance }
+    fun lookUpShard(id: String): Pair<KClass<out AetheriumShard>, ShardDigestionArgsInfo> {
+        return registerTable[id] ?: throw IllegalArgumentException("Unable to find a shard in this id")
+    }
+
+    fun getOrPutInstance(id: String, newInstance: AetheriumShard): AetheriumShard {
+        return shardInstanceTable.getOrPut(id) { newInstance }
+    }
+
+    fun queryInstances(): HashMap<String, AetheriumShard> {
+        return shardInstanceTable
+    }
+
 }
