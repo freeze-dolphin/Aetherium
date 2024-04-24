@@ -1,6 +1,6 @@
 # Aetherium
 
-Illuminated etheric substance, aff composing software in C/S model.
+Illuminated etheric substance, Arcaea composing software in C/S model.
 
 ## Running the server
 
@@ -13,7 +13,9 @@ Directory structure:
 - `config/`: the configurations of external shards will be generated into this folder
     - `config/internal/`: where the configurations of internal shard exist (if there is any)
 
-## Writing your shards
+## Writing your own shards
+
+### Developing
 
 A plugin for `Aetherium` is called a `Aetherium Shard`, and `shard` in short, which extends the function of `Aetherium` and provides more
 features
@@ -40,17 +42,18 @@ Also, don't forget to override the necessary fields and functions:
 - Field `digestionInfo` tells the system how your shard takes arguments:
 
 ```kotlin
-override val digestionInfo: ShardDigestionArgsInfo
-    get() = ShardDigestionArgsInfo {
+override val digestionInfo = ShardDigestionArgsInfo {
 
-        // declare a new argument named `timingList` with type List<Long>
-        // there are currently ten types available, defined in enum class `io.sn.aetherium.objects.ShardDigestionArgsInfo.Item.Type`
-        addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
+    // declare a new argument named `timingList` with type List<Long>
+    // there are currently ten types available, defined in enum class `io.sn.aetherium.objects.ShardDigestionArgsInfo.Item.Type`
+    addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
 
-    }
+}
 ```
 
-- Function `onRegister()` is called right after init of your shard, for example you can load your configuration file at this stage
+- Optional function `onGenesis()` is called right after init of your shard, for example you can load your configuration file at this stage
+
+- Optional function `onTermination()` is called before the server is down, you can do some cleanup here
 
 - Function `generator()` is how you handle the arguments:
 
@@ -83,7 +86,12 @@ tasks.jar {
 }
 ```
 
-For full code example, please check out [exampleShard](example/exampleShard)
+For full code, please check out [exampleShard](example/exampleShard)
 
 For a more complex example, please give a glimpse
-at [ArcTapJumpShard](src/main/kotlin/io/sn/aetherium/implementations/shards/ArcTapJumpShard.kt)
+at [ArcTapJumpShard.kt](src/main/kotlin/io/sn/aetherium/implementations/shards/ArcTapJumpShard.kt)
+
+### Testing
+
+Please check out [ArcTapJumpShardTest.kt](src/test/kotlin/io/sn/aetherium/implementations/shards/ArcTapJumpShardTest.kt), which is a testing
+unit written for the internal plugin [ArcTapJumpShard.kt](src/main/kotlin/io/sn/aetherium/implementations/shards/ArcTapJumpShard.kt)
