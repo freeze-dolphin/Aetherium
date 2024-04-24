@@ -1,6 +1,7 @@
 val kotlinVersion: String by project
 val affComposeVersion: String by project
 val ktorVersion: String by project
+val ktomlVersion: String by project
 val logbackVersion: String by project
 val xmlutilVersion: String by project
 
@@ -11,7 +12,10 @@ plugins {
 
     java
     application
+    `maven-publish`
 }
+
+group = "io.sn"
 
 repositories {
     mavenCentral()
@@ -31,6 +35,8 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:${logbackVersion}")
     implementation("io.ktor:ktor-server-config-yaml:${ktorVersion}")
     implementation("io.ktor:ktor-serialization-kotlinx-json:${ktorVersion}")
+    implementation("com.akuleshov7:ktoml-core:${ktomlVersion}")
+    implementation("com.akuleshov7:ktoml-file:${ktomlVersion}")
     testImplementation("io.ktor:ktor-server-tests-jvm")
 
     implementation("org.reflections:reflections:0.10.2")
@@ -54,4 +60,15 @@ application {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            version = project.version.toString()
+            groupId = project.group.toString()
+            artifactId = "aetherium"
+        }
+    }
 }
