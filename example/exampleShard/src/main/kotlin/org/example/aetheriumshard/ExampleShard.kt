@@ -21,7 +21,7 @@ class ExampleShard : AetheriumShard() {
         // register("example", ExampleShard::class, digestionInfo())
     }
 
-    override fun generator(controllerBrand: ControllerBrand, args: ShardDigestionArgs): Difficulty.() -> Unit = {
+    override fun generator(): Difficulty.() -> Unit = {
         //  Being called when generating aff
 
         val timingList = digestLongList("timingList")
