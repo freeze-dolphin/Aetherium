@@ -33,7 +33,6 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("ch.qos.logback:logback-classic:${logbackVersion}")
-    implementation("io.ktor:ktor-server-config-yaml:${ktorVersion}")
     implementation("io.ktor:ktor-serialization-kotlinx-json:${ktorVersion}")
     implementation("com.akuleshov7:ktoml-core:${ktomlVersion}")
     implementation("com.akuleshov7:ktoml-file:${ktomlVersion}")

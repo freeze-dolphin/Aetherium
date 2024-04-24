@@ -1,7 +1,13 @@
 package io.sn.aetherium
 
+import com.akuleshov7.ktoml.Toml
+import com.akuleshov7.ktoml.TomlIndentation
+import com.akuleshov7.ktoml.TomlOutputConfig
+import com.akuleshov7.ktoml.file.TomlFileReader
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -11,7 +17,10 @@ import io.sn.aetherium.objects.exceptions.AetheriumError
 import io.sn.aetherium.objects.exceptions.AetheriumHaventConnectException
 import io.sn.aetherium.objects.exceptions.MissingArgumentException
 import io.sn.aetherium.utils.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
+import kotlinx.serialization.serializer
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
 import java.util.jar.JarFile
@@ -20,16 +29,67 @@ import kotlin.reflect.full.findAnnotations
 import kotlin.reflect.full.isSubclassOf
 import kotlin.system.exitProcess
 
-fun main(args: Array<String>) {
-    io.ktor.server.netty.EngineMain.main(args)
+object Genesis {
+
+    @Serializable
+    data class AetheriumConfiguration(
+        val connection: AthCfgConnection
+    ) {
+
+        @Serializable
+        data class AthCfgConnection(
+            val host: String,
+            val port: Int
+        )
+    }
+
+    val json = Json {
+        prettyPrint = false
+        isLenient = false
+    }
+
+    val toml = Toml(
+        outputConfig = TomlOutputConfig(
+            indentation = TomlIndentation.NONE
+        )
+    )
+
+    lateinit var configuration: AetheriumConfiguration
+
+    val defaultConfiguration = AetheriumConfiguration(
+        AetheriumConfiguration.AthCfgConnection("127.0.0.1", 8809)
+    )
+
+    lateinit var controllerBrand: ControllerBrand
+    val isControllerBrandInitialized
+        get() = ::controllerBrand.isInitialized
+
 }
 
-val json = Json {
-    prettyPrint = false
-    isLenient = false
+fun main() {
+    file(".", "aetherium.toml").let {
+        if (!it.exists()) {
+            it.createNewFile()
+            it.writeText(Genesis.toml.encodeToString(Genesis.defaultConfiguration))
+        }
+        Genesis.configuration = TomlFileReader.decodeFromFile(serializer(), it.path)
+    }
+    val env = applicationEngineEnvironment {
+        envConfig()
+    }
+    embeddedServer(Netty, env).start(true)
 }
 
-var controllerBrand = ControllerBrand("Unknown", "0.0")
+fun ApplicationEngineEnvironmentBuilder.envConfig() {
+    module {
+        module()
+    }
+    connector {
+        host = Genesis.configuration.connection.host
+        port = Genesis.configuration.connection.port
+    }
+}
+
 
 @Suppress("unused")
 fun Application.module() {
@@ -43,7 +103,8 @@ fun Application.module() {
             try {
                 val klass = clazz.kotlin
                 if (klass.isSubclassOf(AetheriumShard::class) && klass.findAnnotations(ShardInfo::class).isNotEmpty()) {
-                    @Suppress("UNCHECKED_CAST") counter.add(loadPlugin(klass as KClass<out AetheriumShard>), true)
+                    @Suppress("UNCHECKED_CAST")
+                    counter.add(loadPlugin(klass as KClass<out AetheriumShard>), true)
                 }
             } catch (e: Exception) {
                 log.error(e.stackTraceToString())
@@ -70,17 +131,19 @@ fun Application.module() {
         }
     }
 
-    run { // done with loading
-        counter.logInfo()
-    }
+    counter.logInfo(this)
 
     install(ContentNegotiation) {
-        json(json)
+        json(Genesis.json)
     }
 
     routing {
-        get("/destroy") {
-            call.respondText("See you next time. ;)")
+        get("/termination") {
+            AetheriumCache.queryInstances().values.forEach {
+                it.onTermination()
+            }
+
+            call.respondText("Done with termination.\nSee you next time. ;)")
             exitProcess(0)
         }
         get("/connect") {
@@ -88,42 +151,41 @@ fun Application.module() {
 
             val (controllerName, controllerVersion) = Regex("""(\w+)/([\d.]+)""").find(ua)!!.destructured
 
-            controllerBrand = ControllerBrand(controllerName, controllerVersion)
+            Genesis.controllerBrand = ControllerBrand(controllerName, controllerVersion)
             call.respondText("Connected!\n\nController Brand:\t${controllerName}\nController Version:\t${controllerVersion}\n")
         }
         post("/generate") {
             try {
-                if (controllerBrand.name == "Unknown") throw AetheriumHaventConnectException("Please connect first to submit controller brand")
-                val recv = json.parseToJsonElement(call.receiveText()).jsonObject
+                if (!Genesis.isControllerBrandInitialized) throw AetheriumHaventConnectException("Please connect first to submit controller brand")
+                val recv = Genesis.json.parseToJsonElement(call.receiveText()).jsonObject
                 val id = recv["id"]!!.jsonPrimitive.content
                 val jsonArgs = recv["args"]!!.jsonObject
 
-                val (clazz, info) = lookUpShard(id)
+                val (clazz, info) = AetheriumCache.lookUpShard(id)
 
                 // Assign parameter
                 val shardArgs = mutableMapOf<String, ShardDigestion.Union>()
                 info.items.forEach {
-                    val union = ShardDigestion.Union()
-                    when (it.type) {
-                        ShardDigestionArgsInfo.Item.Type.STRING -> union.string = jsonArgs[it.name]!!.jsonPrimitive.content
-                        ShardDigestionArgsInfo.Item.Type.INT -> union.int = jsonArgs[it.name]!!.jsonPrimitive.int
-                        ShardDigestionArgsInfo.Item.Type.LONG -> union.long = jsonArgs[it.name]!!.jsonPrimitive.long
-                        ShardDigestionArgsInfo.Item.Type.DOUBLE -> union.double = jsonArgs[it.name]!!.jsonPrimitive.double
-                        ShardDigestionArgsInfo.Item.Type.BOOLEAN -> union.boolean = jsonArgs[it.name]!!.jsonPrimitive.boolean
-                        ShardDigestionArgsInfo.Item.Type.STRING_LIST -> union.stringList =
-                            jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.content }
+                    val union = when (it.type) {
+                        ShardDigestionArgsInfo.Item.Type.STRING -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonPrimitive.content)
+                        ShardDigestionArgsInfo.Item.Type.INT -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonPrimitive.int)
+                        ShardDigestionArgsInfo.Item.Type.LONG -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonPrimitive.long)
+                        ShardDigestionArgsInfo.Item.Type.DOUBLE -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonPrimitive.double)
+                        ShardDigestionArgsInfo.Item.Type.BOOLEAN -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonPrimitive.boolean)
+                        ShardDigestionArgsInfo.Item.Type.STRING_ARRAY -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.content }
+                            .toTypedArray())
 
-                        ShardDigestionArgsInfo.Item.Type.INT_LIST -> union.intList =
-                            jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.int }
+                        ShardDigestionArgsInfo.Item.Type.INT_ARRAY -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.int }
+                            .toTypedArray())
 
-                        ShardDigestionArgsInfo.Item.Type.LONG_LIST -> union.longList =
-                            jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.long }
+                        ShardDigestionArgsInfo.Item.Type.LONG_ARRAY -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.long }
+                            .toTypedArray())
 
-                        ShardDigestionArgsInfo.Item.Type.DOUBLE_LIST -> union.doubleList =
-                            jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.double }
+                        ShardDigestionArgsInfo.Item.Type.DOUBLE_ARRAY -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.double }
+                            .toTypedArray())
 
-                        ShardDigestionArgsInfo.Item.Type.BOOLEAN_LIST -> union.booleanList =
-                            jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.boolean }
+                        ShardDigestionArgsInfo.Item.Type.BOOLEAN_ARRAY -> ShardDigestion.Union(jsonArgs[it.name]!!.jsonArray.map { a -> a.jsonPrimitive.boolean }
+                            .toTypedArray())
                     }
                     shardArgs[it.name] = union
                 }
@@ -139,9 +201,9 @@ fun Application.module() {
                 }
 
                 // TODO(cleanup the inactive instances in the pool)
-                val shard: AetheriumShard = getOrPutInstance(id, clazz.constructors.first().call())
+                val shard: AetheriumShard = AetheriumCache.getOrPutInstance(id, clazz.constructors.first().call())
 
-                shard.feed(shardDigestionArgs)
+                shard.feed(Genesis.controllerBrand, shardDigestionArgs)
                 call.respond(shard.generate().chart)
             } catch (e: Exception) {
                 call.respond(AetheriumError(e))
