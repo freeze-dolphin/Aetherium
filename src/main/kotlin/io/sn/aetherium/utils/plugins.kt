@@ -1,10 +1,14 @@
 package io.sn.aetherium.utils
 
+import com.akuleshov7.ktoml.Toml
 import io.ktor.server.application.*
+import io.sn.aetherium.controllerBrand
 import io.sn.aetherium.objects.AetheriumShard
 import io.sn.aetherium.objects.ShardInfo
 import io.sn.aetherium.objects.exceptions.InvalidManifestException
+import io.sn.aetherium.objects.getOrPutInstance
 import io.sn.aetherium.objects.register
+import kotlinx.serialization.encodeToString
 import java.io.File
 import java.util.jar.JarFile
 import java.util.jar.Manifest
@@ -33,17 +37,13 @@ fun loadClass(jarFile: File, clazzPath: String): Class<out AetheriumShard> {
 fun readAetheriumEntry(jarfile: JarFile): String {
     lateinit var manifest: Manifest
     try {
-        with(jarfile) {
-            manifest = this.manifest
-        }
+        manifest = jarfile.manifest
 
-        val entry = if (manifest.mainAttributes?.getValue("Aetherium-Entry") != null) {
+        return if (manifest.mainAttributes?.getValue("Aetherium-Entry") != null) {
             manifest.mainAttributes.getValue("Aetherium-Entry")
         } else {
-            throw InvalidManifestException("This shard contains invalid manifest, ignored")
+            throw InvalidManifestException("The shard '${jarfile.name}' contains no valid manifest, ignored")
         }
-
-        return entry
     } catch (e: Exception) {
         throw e
     }
@@ -52,16 +52,48 @@ fun readAetheriumEntry(jarfile: JarFile): String {
 fun Application.loadPlugin(clazz: KClass<out AetheriumShard>): PluginLoadState {
     try {
         val annot = clazz.findAnnotations(ShardInfo::class)
-        val id = annot.first().id
-        val manual = annot.first().manualLoad
-
 
         if (annot.isNotEmpty()) {
-            if (manual) return PluginLoadState.MANUAL
-            val shard = clazz.constructors.first().call()
+            val shardInfo = annot.first()
+            val id = shardInfo.id
+            val manual = shardInfo.manualLoad
 
-            log.info("Registering internal plugin: $id")
+            if (manual) return PluginLoadState.MANUAL
+            val shard: AetheriumShard = getOrPutInstance(id, clazz.constructors.first().call())
+
+            log.info("Auto-registering plugin: $id")
+
+            // TODO(there should be an active detection of id conflicting)
             register(id, shard.javaClass.kotlin, shard.digestionInfo)
+
+            file(".", "config", "internal").let {
+                if (!it.exists()) it.mkdirs()
+            }
+
+            if (!shardInfo.hasConfig) {
+                if (!shard.inited) shard.init(
+                    id,
+                    controllerBrand,
+                    null
+                )
+            } else {
+                val configFilePath = if (shard.isInternal) {
+                    file(".", "config", "internal", "${id}.toml")
+                } else {
+                    file(".", "config", "${id}.toml")
+                }
+                val configFile = configFilePath.apply {
+                    if (!this.exists()) {
+                        this.createNewFile()
+                        this.writeText(Toml.encodeToString(mapOf<String, String>()))
+                    }
+                }
+                if (!shard.inited) shard.init(
+                    id,
+                    controllerBrand,
+                    configFile
+                )
+            }
             shard.onRegister()
             return PluginLoadState.SUCCESSFUL
         } else {
@@ -75,4 +107,37 @@ fun Application.loadPlugin(clazz: KClass<out AetheriumShard>): PluginLoadState {
 
 enum class PluginLoadState {
     MANUAL, SUCCESSFUL, FAILED, IGNORED
+}
+
+data class PluginLoadCounter(
+    private var pluginCounterInternal: Int = 0,
+    private var pluginCounterExternal: Int = 0,
+    private var pluginCounterInternalErr: Int = 0,
+    private var pluginCounterExternalErr: Int = 0,
+    private var pluginCounterInternalMan: Int = 0,
+    private var pluginCounterExternalMan: Int = 0
+) {
+    fun add(state: PluginLoadState, isInternal: Boolean) {
+        when (state) {
+            PluginLoadState.MANUAL -> if (isInternal) pluginCounterInternalMan++ else pluginCounterExternalMan++
+            PluginLoadState.SUCCESSFUL -> if (isInternal) pluginCounterInternal++ else pluginCounterExternal++
+            PluginLoadState.FAILED -> if (isInternal) pluginCounterInternalErr++ else pluginCounterExternalErr++
+            PluginLoadState.IGNORED -> {}
+        }
+    }
+
+    private fun totalSuccessful(): Int {
+        return pluginCounterInternal + pluginCounterExternal
+    }
+
+    fun logInfo(): Application.() -> Unit = {
+        val total = totalSuccessful()
+        val pl = if (total == 1) "" else "s"
+        log.info("")
+        log.info("Done! (with $total plugin${pl} loaded)")
+        log.info(" ├ Internal: [Load: $pluginCounterInternal | Err: $pluginCounterInternalErr | Manual: $pluginCounterInternalMan]")
+        log.info(" └ External: [Load: $pluginCounterExternal | Err: $pluginCounterExternalErr | Manual: $pluginCounterExternalMan]")
+        log.info("")
+    }
+
 }
