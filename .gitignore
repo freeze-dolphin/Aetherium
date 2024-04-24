@@ -6,4 +6,8 @@ build
 
 **/.idea
 
+config
 plugins
+result
+
+aetherium.toml
