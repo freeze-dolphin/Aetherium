@@ -10,7 +10,6 @@ import io.sn.aetherium.objects.*
 import io.sn.aetherium.objects.exceptions.AetheriumError
 import io.sn.aetherium.objects.exceptions.AetheriumHaventConnectException
 import io.sn.aetherium.objects.exceptions.MissingArgumentException
-import io.sn.aetherium.objects.exceptions.NonAetheriumShardException
 import io.sn.aetherium.utils.*
 import kotlinx.serialization.json.*
 import org.reflections.Reflections
