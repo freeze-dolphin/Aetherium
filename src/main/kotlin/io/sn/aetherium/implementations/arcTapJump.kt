@@ -17,8 +17,6 @@ val noteJumpGetFrame = fun(
     val currentCoord = getParabolaCoordinateAtTime(NoteInfo(position.x, 0.0), NoteInfo(targetPosition.x, duration), progress)
     val offset = (currentCoord.second * ARCAEA_COORD_SYSTEM_ZOOM_CONSTANT + extraNoteOffset).toLong()
 
-    println(offset)
-
     return listOf(ArcNote((hideTiming + offset - 1), (hideTiming + offset), currentCoord.toPosition().apply {
         y = 0.0
     }, ArcNote.CurveType.S, currentCoord.toPosition().apply {
