@@ -15,26 +15,24 @@ class ArcTapJumpShard : AetheriumShard() {
     override val isInternal: Boolean
         get() = true
 
-    override val digestionInfo: ShardDigestionArgsInfo
-        get() = ShardDigestionArgsInfo {
-            addInfo("globalOffset", ShardDigestionArgsInfo.Item.Type.LONG)
-            addInfo("fps", ShardDigestionArgsInfo.Item.Type.INT)
-            addInfo("bpm", ShardDigestionArgsInfo.Item.Type.DOUBLE)
-            addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
-            addInfo("positionList", ShardDigestionArgsInfo.Item.Type.DOUBLE_LIST)
-            addInfo("control", ShardDigestionArgsInfo.Item.Type.STRING)
-        }
+    override val digestionInfo: ShardDigestionArgsInfo = ShardDigestionArgsInfo {
+        addInfo("globalOffset", ShardDigestionArgsInfo.Item.Type.LONG)
+        addInfo("fps", ShardDigestionArgsInfo.Item.Type.INT)
+        addInfo("bpm", ShardDigestionArgsInfo.Item.Type.DOUBLE)
+        addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_ARRAY)
+        addInfo("positionList", ShardDigestionArgsInfo.Item.Type.DOUBLE_ARRAY)
+        addInfo("control", ShardDigestionArgsInfo.Item.Type.STRING)
+    }
 
     override fun generator(): Difficulty.() -> Unit = {
-        val globalOffset = digestLong("globalOffset")
-        val timingList: List<Long> = digestLongList("timingList")
-        val positionList: List<Double> = digestDoubleList("positionList")
+        val timingList: Array<Long> = digestLongArray("timingList")
+        val positionList: Array<Double> = digestDoubleArray("positionList")
         val control = digestString("control")
 
         val animBasicCfg = AnimationBasicConfigurtion(
             digestInt("fps"),
             digestDouble("bpm"),
-            globalOffset + 1
+            digestLong("globalOffset") + 1
         )
 
         val controlMap = mutableMapOf<Int, Long>()

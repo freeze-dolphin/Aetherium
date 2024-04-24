@@ -9,12 +9,11 @@ import kotlin.random.Random
 @ShardInfo("example")
 class ExampleShard : AetheriumShard() {
 
-    override val digestionInfo: ShardDigestionArgsInfo
-        get() = ShardDigestionArgsInfo {
-            addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_LIST)
-        }
+    override val digestionInfo: ShardDigestionArgsInfo = ShardDigestionArgsInfo {
+        addInfo("timingList", ShardDigestionArgsInfo.Item.Type.LONG_ARRAY)
+    }
 
-    override fun onRegister() {
+    override fun onGenesis() {
         // Being called when loading this plugin
 
         // You don't need to call `register` unless you set `manualLoad` to true in @ShardInfo
@@ -24,7 +23,7 @@ class ExampleShard : AetheriumShard() {
     override fun generator(): Difficulty.() -> Unit = {
         //  Being called when generating aff
 
-        val timingList = digestLongList("timingList")
+        val timingList = digestLongArray("timingList")
 
         timingList.forEach {
             quickArctap(it, Random.nextDouble(-0.5, 1.5) pos 0.5)
