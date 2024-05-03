@@ -11,3 +11,5 @@ plugins
 result
 
 aetherium.toml
+
+src/test/kotlin/Playground.kt
