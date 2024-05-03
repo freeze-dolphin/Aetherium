@@ -7,7 +7,6 @@ import io.sn.aetherium.objects.serialiation.ShardDigestionArgsInfoSerializer
 import io.sn.aetherium.objects.serialiation.UnionSerializer
 import kotlinx.serialization.Serializable
 import java.io.File
-import java.io.Serial
 import kotlin.reflect.KClass
 
 @RequiresOptIn(message = "Do not use in scenarios except testing")
@@ -44,33 +43,74 @@ data class ShardDigestion(
     @Serializable(UnionSerializer::class)
     class Union {
 
+        /**
+         * Special Union data
+         */
         object Restriction {
 
             /**
-             * Special Union data, representing the current timing in chart editors
+             * @return The current timing in chart editors
              */
             val editorCurrentTiming: Union = fromTiming(-600000L)
 
+            /**
+             * @return The timing after `delay` in chart editors
+             */
             fun editorDelayTiming(delay: Long): Union = fromTiming(-600000L - delay)
 
+            /**
+             * @return The timing point Union
+             */
             fun fromTiming(timing: Long): Union =
                 Union(timing).apply {
                     longIsTiming = true
                 }
 
+            /**
+             * @return The position Union
+             */
             fun fromPosition(position: Position): Union =
                 Union(arrayOf(position.x, position.y)).apply {
                     doubleArrIsPosition = true
                 }
+
+            fun placeholder(key: String): Union =
+                when (key) {
+                    "globalOffset" -> songGlobalOffsetPlaceholder
+                    "bpm" -> songBpmPlaceholder
+                    else -> Union().apply {
+                        placeholder = key
+                    }
+                }
+
+            /**
+             * @return The global offset of current song in editor
+             */
+            val songGlobalOffsetPlaceholder: Union =
+                Union().apply {
+                    placeholder = "globalOffset"
+                }
+
+            /**
+             * @return The bpm of current song in editor
+             */
+            val songBpmPlaceholder: Union =
+                Union().apply {
+                    placeholder = "bpm"
+                }
+
         }
 
+        var placeholder: String? = null
         var string: String? = null
+
         var primitive: PrimitiveUnion? = null
+
+        var longIsTiming = false
+
         var stringArr: Array<String>? = null
         var intArr: Array<Int>? = null
         var longArr: Array<Long>? = null
-
-        var longIsTiming = false
 
         var doubleArr: Array<Double>? = null
         var doubleArrIsPosition: Boolean = false
@@ -485,9 +525,15 @@ object AetheriumCache {
         return shardInstanceTable
     }
 
-    fun queryInfos(): Map<String, ShardDigestionArgsInfo> {
+    @Serializable
+    data class QueryResult(
+        val name: LocalizedString,
+        val args: ShardDigestionArgsInfo
+    )
+
+    fun queryInfos(): Map<String, QueryResult> {
         return registerTable.keys.associateWith {
-            registerTable[it]!!.digestionArgsInfo
+            QueryResult(registerTable[it]!!.name, registerTable[it]!!.digestionArgsInfo)
         }
     }
 

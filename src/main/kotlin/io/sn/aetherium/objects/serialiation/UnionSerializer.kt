@@ -18,31 +18,42 @@ import kotlinx.serialization.encoding.Encoder
 object UnionSerializer : KSerializer<ShardDigestion.Union> {
     override val descriptor: SerialDescriptor =
         buildClassSerialDescriptor("ShardDigestion.Union") {
-            element<String>("stringValue")
-            element<Int>("intValue")
-            element<Long>("longValue")
-            element<Double>("doubleValue")
-            element<Boolean>("booleanValue")
-            element<Array<String>>("stringArrayValue")
-            element<Array<Int>>("intArrayValue")
-            element<Array<Long>>("longArrayValue")
-            element<Array<Double>>("doubleArrayValue")
-            element<Array<Boolean>>("booleanArrayValue")
-            element<Chart>("chartValue")
-            element<Position>("positionValue")
-            element<Long>("timingValue")
+            /*  0   */  element<String>("stringValue")
+            /*  1   */  element<Int>("intValue")
+            /*  2   */  element<Long>("longValue")
+            /*  3   */  element<Double>("doubleValue")
+            /*  4   */  element<Boolean>("booleanValue")
+            /*  5   */  element<Array<String>>("stringArrayValue")
+            /*  6   */  element<Array<Int>>("intArrayValue")
+            /*  7   */  element<Array<Long>>("longArrayValue")
+            /*  8   */  element<Array<Double>>("doubleArrayValue")
+            /*  9   */  element<Array<Boolean>>("booleanArrayValue")
+            /*  10  */  element<Chart>("chartValue")
+            /*  11  */  element<Position>("positionValue")
+            /*  12  */  element<Long>("timingValue")
+            /*  13  */  element<String>("placeholder")
         }
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun serialize(encoder: Encoder, value: ShardDigestion.Union) {
         val composite = encoder.beginStructure(descriptor)
         when {
-            value.string != null -> composite.encodeStringElement(descriptor, 0, value.string!!)
-            value.primitive != null && value.primitive!!.intInited -> composite.encodeIntElement(
+            value.placeholder != null -> composite.encodeStringElement(
                 descriptor,
-                1,
-                value.primitive!!.int
+                13,
+                value.placeholder!!
             )
+
+            value.string != null ->
+                composite.encodeStringElement(descriptor, 0, value.string!!)
+
+            value.primitive != null && value.primitive!!.intInited -> {
+                composite.encodeIntElement(
+                    descriptor,
+                    1,
+                    value.primitive!!.int
+                )
+            }
 
             value.primitive != null && value.primitive!!.longInited -> {
                 if (value.longIsTiming) {
@@ -60,11 +71,13 @@ object UnionSerializer : KSerializer<ShardDigestion.Union> {
                 }
             }
 
-            value.primitive != null && value.primitive!!.doubleInited -> composite.encodeDoubleElement(
-                descriptor,
-                3,
-                value.primitive!!.double
-            )
+            value.primitive != null && value.primitive!!.doubleInited -> {
+                composite.encodeDoubleElement(
+                    descriptor,
+                    3,
+                    value.primitive!!.double
+                )
+            }
 
             value.primitive != null && value.primitive!!.booleanInited -> composite.encodeBooleanElement(
                 descriptor,
@@ -134,32 +147,38 @@ object UnionSerializer : KSerializer<ShardDigestion.Union> {
         var position: Position? = null
         var timing: ShardDigestion.Union.PrimitiveUnion? = null
 
+        var placeholder: ShardDigestion.Union? = null
+
         loop@ while (true) {
-            when (composite.decodeElementIndex(descriptor)) {
+            when (val index = composite.decodeElementIndex(descriptor)) {
                 CompositeDecoder.DECODE_DONE -> break@loop
                 11 -> position = composite.decodeSerializableElement(descriptor, 11, ArraySerializer(Double.serializer())).let {
                     it[0] pos it[1]
                 }
 
-                12 -> timing = ShardDigestion.Union.PrimitiveUnion(composite.decodeLongElement(descriptor, 12))
+                12 -> timing = ShardDigestion.Union.PrimitiveUnion(composite.decodeLongElement(descriptor, index))
 
-                0 -> string = composite.decodeStringElement(descriptor, 0)
-                1 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeIntElement(descriptor, 1))
-                2 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeLongElement(descriptor, 2))
-                3 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeDoubleElement(descriptor, 3))
-                4 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeBooleanElement(descriptor, 4))
-                5 -> stringArr = composite.decodeSerializableElement(descriptor, 5, ArraySerializer(String.serializer()))
-                6 -> intArr = composite.decodeSerializableElement(descriptor, 6, ArraySerializer(Int.serializer()))
-                7 -> longArr = composite.decodeSerializableElement(descriptor, 7, ArraySerializer(Long.serializer()))
-                8 -> doubleArr = composite.decodeSerializableElement(descriptor, 8, ArraySerializer(Double.serializer()))
-                9 -> booleanArr = composite.decodeSerializableElement(descriptor, 9, ArraySerializer(Boolean.serializer()))
-                10 -> chart = composite.decodeSerializableElement(descriptor, 10, Chart.serializer())
+                13 -> placeholder = ShardDigestion.Union(composite.decodeStringElement(descriptor, index))
+
+                0 -> string = composite.decodeStringElement(descriptor, index)
+
+                1 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeIntElement(descriptor, index))
+                2 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeLongElement(descriptor, index))
+                3 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeDoubleElement(descriptor, index))
+                4 -> primitive = ShardDigestion.Union.PrimitiveUnion(composite.decodeBooleanElement(descriptor, index))
+                5 -> stringArr = composite.decodeSerializableElement(descriptor, index, ArraySerializer(String.serializer()))
+                6 -> intArr = composite.decodeSerializableElement(descriptor, index, ArraySerializer(Int.serializer()))
+                7 -> longArr = composite.decodeSerializableElement(descriptor, index, ArraySerializer(Long.serializer()))
+                8 -> doubleArr = composite.decodeSerializableElement(descriptor, index, ArraySerializer(Double.serializer()))
+                9 -> booleanArr = composite.decodeSerializableElement(descriptor, index, ArraySerializer(Boolean.serializer()))
+                10 -> chart = composite.decodeSerializableElement(descriptor, index, Chart.serializer())
             }
         }
         composite.endStructure(descriptor)
 
         if (position != null) return ShardDigestion.Union.Restriction.fromPosition(position)
         if (timing != null) return ShardDigestion.Union.Restriction.fromTiming(timing.long)
+        if (placeholder != null) return ShardDigestion.Union.Restriction.placeholder(placeholder.string!!)
 
         if (string != null) return ShardDigestion.Union(string)
         if (primitive != null) return ShardDigestion.Union(primitive)
@@ -169,6 +188,7 @@ object UnionSerializer : KSerializer<ShardDigestion.Union> {
         if (doubleArr != null) return ShardDigestion.Union(doubleArr)
         if (booleanArr != null) return ShardDigestion.Union(booleanArr)
         if (chart != null) return ShardDigestion.Union(chart)
+
         throw IllegalStateException("Unable to deserialize the Union")
     }
 }
