@@ -11,6 +11,7 @@ data class AnimationConfiguration(
     val radius: Triple<Double, Double, EasingFunction>,
     val position: Triple<Position, Position, EasingFunction>,
     val extraNoteOffset: Long,
+    val showFirstFrame: Boolean = true,
     val generateArcNotes: (Long, Double, Position, Double, Long, Any?) -> List<ArcNote>,
     val extra: Any?,
 )

@@ -12,6 +12,7 @@ fun Difficulty.addAnimation(animCfg: AnimationConfiguration) {
         animCfg.radius,
         animCfg.position,
         animCfg.extraNoteOffset,
+        animCfg.showFirstFrame,
         animCfg.generateArcNotes,
         animCfg.extra
     )
@@ -24,7 +25,7 @@ fun Difficulty.addAnimation(animCfg: AnimationConfiguration) {
  * @param radius: the start and end radius
  * @param position: the start and end position
  * @param extraNoteOffset: extra note offset that added to this animation
- * @param generateArcNotes: the function that generate [ArcNote];
+ * @param generateNotes: the function that generate [ArcNote];
  *        Parameter Info:
  *        generateArcNotes(
  *             hideTiming: Long,
@@ -42,7 +43,8 @@ fun Difficulty.addAnimation(
     radius: Triple<Double, Double, EasingFunction>,
     position: Triple<Position, Position, EasingFunction>,
     extraNoteOffset: Long,
-    generateArcNotes: (Long, Double, Position, Double, Long, Any?) -> List<ArcNote>,
+    showFirstFrame: Boolean = true,
+    generateNotes: (Long, Double, Position, Double, Long, Any?) -> List<Note>,
     extra: Any?,
 ) {
     val startRadius = radius.first
@@ -61,6 +63,8 @@ fun Difficulty.addAnimation(
     val realFrameCount: Double = ((basicCfg.frameCount * duration / 1000.0).toInt() - 1).toDouble()
 
     for (i in 0..realFrameCount.toInt()) {
+        if (i == 0 && showFirstFrame) continue
+
         val progress: Double = i / realFrameCount
         val nextProgress: Double = (i + 1) / realFrameCount
 
@@ -81,7 +85,7 @@ fun Difficulty.addAnimation(
             timing(showTiming, 0, 999)
             timing(hideTiming - 1, -basicCfg.bpm * basicCfg.noteOffset, 999)
             timing(hideTiming, basicCfg.bpm, 999)
-            generateArcNotes.invoke(
+            generateNotes.invoke(
                 hideTiming + basicCfg.noteOffset + extraNoteOffset,
                 currentRadius,
                 currentPosition[0] pos currentPosition[1],
@@ -89,7 +93,11 @@ fun Difficulty.addAnimation(
                 extraNoteOffset,
                 extra
             ).forEach {
-                addArcNote(it)
+                when (it) {
+                    is ArcNote -> addArcNote(it)
+                    is HoldNote -> addHoldNote(it)
+                    is NormalNote -> addNormalNote(it)
+                }
             }
         }
     }
