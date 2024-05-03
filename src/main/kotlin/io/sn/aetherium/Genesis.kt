@@ -5,6 +5,7 @@ import com.akuleshov7.ktoml.TomlIndentation
 import com.akuleshov7.ktoml.TomlOutputConfig
 import com.akuleshov7.ktoml.file.TomlFileReader
 import com.tairitsu.compose.arcaea.Chart
+import com.tairitsu.compose.arcaea.pos
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -207,10 +208,13 @@ fun Application.module() {
                             ShardDigestionArgsInfo.Item.Type.BOOLEAN_ARRAY -> ShardDigestion.Union(jsonArgs[it.id]!!.jsonArray.map { a -> a.jsonPrimitive.boolean }
                                 .toTypedArray())
 
-                            ShardDigestionArgsInfo.Item.Type.TIMING -> ShardDigestion.Union(jsonArgs[it.id]!!.jsonPrimitive.long)
+                            ShardDigestionArgsInfo.Item.Type.TIMING -> ShardDigestion.Union.Restriction.fromTiming(jsonArgs[it.id]!!.jsonPrimitive.long)
 
-                            ShardDigestionArgsInfo.Item.Type.POSITION -> ShardDigestion.Union(jsonArgs[it.id]!!.jsonArray.map { a -> a.jsonPrimitive.double }
-                                .toTypedArray())
+                            ShardDigestionArgsInfo.Item.Type.POSITION -> ShardDigestion.Union.Restriction.fromPosition(
+                                jsonArgs[it.id]!!.jsonArray.map { a -> a.jsonPrimitive.double }
+                                    .let { dlist ->
+                                        dlist[0] pos dlist[1]
+                                    })
 
                             ShardDigestionArgsInfo.Item.Type.CHART -> ShardDigestion.Union(
                                 Chart.fromAff(jsonArgs[it.id]!!.jsonPrimitive.content)
