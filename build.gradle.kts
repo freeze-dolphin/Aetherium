@@ -17,11 +17,6 @@ plugins {
 
 group = "io.sn"
 
-repositories {
-    mavenCentral()
-    maven(url = "https://jitpack.io")
-}
-
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
@@ -34,6 +29,7 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("ch.qos.logback:logback-classic:${logbackVersion}")
     implementation("io.ktor:ktor-serialization-kotlinx-json:${ktorVersion}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("com.akuleshov7:ktoml-core:${ktomlVersion}")
     implementation("com.akuleshov7:ktoml-file:${ktomlVersion}")
     testImplementation("io.ktor:ktor-server-tests-jvm")
