@@ -63,7 +63,7 @@ fun Difficulty.addAnimation(
     val realFrameCount: Double = ((basicCfg.frameCount * duration / 1000.0).toInt() - 1).toDouble()
 
     for (i in 0..realFrameCount.toInt()) {
-        if (i == 0 && showFirstFrame) continue
+        if (i == 0 && !showFirstFrame) continue
 
         val progress: Double = i / realFrameCount
         val nextProgress: Double = (i + 1) / realFrameCount
@@ -78,8 +78,9 @@ fun Difficulty.addAnimation(
         val showTiming: Long = startTiming + (duration * progress).toLong()
         val hideTiming: Long = startTiming + (duration * nextProgress).toLong()
 
-        timingGroup {
-            addSpecialEffect(TimingGroupSpecialEffectType.NO_INPUT)
+        timingGroup(
+            noinput
+        ) {
             timing(0, basicCfg.bpm, 999)
             timing(showTiming - 1, -basicCfg.bpm * basicCfg.noteOffset, 999)
             timing(showTiming, 0, 999)
