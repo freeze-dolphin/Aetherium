@@ -1,8 +1,11 @@
 package io.sn.aetherium.implementations
 
-import com.tairitsu.compose.arcaea.ArcNote
+import com.tairitsu.compose.arcaea.Note
 import com.tairitsu.compose.arcaea.Position
+import com.tairitsu.compose.arcaea.pos
 import com.tairitsu.compose.arcaea.toPosition
+import io.sn.aetherium.utils.composeNotes
+import io.sn.aetherium.utils.quickArctap
 import kotlin.math.sqrt
 
 val noteJumpGetFrame = fun(
@@ -12,19 +15,15 @@ val noteJumpGetFrame = fun(
     progress: Double,
     extraNoteOffset: Long,
     extra: Any?,
-): List<ArcNote> {
+): List<Note> {
     val targetPosition = extra!! as Position
     val currentCoord = getParabolaCoordinateAtTime(NoteInfo(position.x, 0.0), NoteInfo(targetPosition.x, duration), progress)
+    val currentCoordY = getParabolaCoordinateAtTime(NoteInfo(position.y, 0.0), NoteInfo(targetPosition.y, duration), progress)
     val offset = (currentCoord.second * ARCAEA_COORD_SYSTEM_ZOOM_CONSTANT + extraNoteOffset).toLong()
 
-    return listOf(ArcNote((hideTiming + offset - 1), (hideTiming + offset), currentCoord.toPosition().apply {
-        y = 0.0
-    }, ArcNote.CurveType.S, currentCoord.toPosition().apply {
-        y = 0.0
-    }, ArcNote.Color.BLUE, true
-    ) {
-        arctap((hideTiming + offset))
-    })
+    return composeNotes {
+        quickArctap(hideTiming + offset, currentCoord.toPosition().x pos currentCoordY.toPosition().x)
+    }
 }
 
 private var ARCAEA_COORD_SYSTEM_ZOOM_CONSTANT: Long = 2000
