@@ -64,7 +64,7 @@ fun Application.loadPlugin(clazz: KClass<out AetheriumShard>): PluginLoadState {
             log.info("Registering ${chinternal}plugin: $id")
 
             // TODO(there should be an active detection of id conflicting)
-            AetheriumCache.register(id, shard.javaClass.kotlin, shard.digestionInfo)
+            AetheriumCache.register(id, shard.javaClass.kotlin, shard.name, shard.digestionInfo)
 
             file(".", "config", "internal").let {
                 if (!it.exists()) it.mkdirs()
