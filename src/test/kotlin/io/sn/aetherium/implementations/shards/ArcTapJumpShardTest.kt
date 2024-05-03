@@ -1,6 +1,9 @@
 package io.sn.aetherium.implementations.shards
 
+import com.tairitsu.compose.arcaea.ChartConfiguration
 import com.tairitsu.compose.arcaea.generateString
+import com.tairitsu.compose.arcaea.pos
+import com.tairitsu.compose.arcaea.timing
 import io.sn.aetherium.objects.ControllerBrand
 import io.sn.aetherium.objects.ShardDigestion
 import io.sn.aetherium.objects.TestOnlyApi
@@ -15,30 +18,53 @@ class ArcTapJumpShardTest {
         val shard = ArcTapJumpShard()
         shard.testInit()
 
-        val args = mutableMapOf(
-            // @formatter:off
-            "globalOffset" to ShardDigestion.Union(260279),
-            "fps" to ShardDigestion.Union(240),
-            "bpm" to ShardDigestion.Union(126.0),
-            "timingList" to ShardDigestion.Union(
-                arrayOf<Long>(78095, 78571, 79047, 79523, 80000, 80476, 80952, 81428, 81904, 82380, 82857, 83333, 83809, 84285, 84761, 85238, 85714, 85952, 86190, 86428, 86666, 86904, 87142, 87380, 87619, 87857, 88095, 88333, 88571, 88809, 89047, 89285)
-            ),
-            "positionList" to ShardDigestion.Union(
-                arrayOf(-0.25, 0.25, 0.75, 1.25, 1.25, 0.75, 0.25, -0.25, 0.75, 0.25, 1.25, -0.25, 0.75, 0.25, 1.25, -0.25, 0.75, 0.75, 0.25, 0.25, 1.00, 1.00, 0.0, 0.0, 1.25, 1.25, -0.25, -0.25, 1.5, 1.5, -0.5, -0.5)
-            ),
-            "control" to ShardDigestion.Union("0:2000;16:600")
-            // @formatter:on
+        shard.feed(
+            ControllerBrand("ArcadePlus", "0.5.3"), mutableMapOf(
+                "globalOffset" to ShardDigestion.Union(260279L),
+                "fps" to ShardDigestion.Union(240),
+                "bpm" to ShardDigestion.Union(60.0),
+                "timingStart" to ShardDigestion.Union.Restriction.fromTiming(183333),
+                "timingEnd" to ShardDigestion.Union.Restriction.fromTiming(184285),
+                "positionStart" to ShardDigestion.Union.Restriction.fromPosition(0.25 pos 0.00),
+                "positionEnd" to ShardDigestion.Union.Restriction.fromPosition(0 pos 1),
+                "showFirstFrame" to ShardDigestion.Union(true),
+                "control" to ShardDigestion.Union("0:2000")
+            )
         )
-        shard.feed(ControllerBrand("ArcadePlus", "0.5.3"), args)
 
-        // print generated aff without serialization
-        val result = shard.generate().generateString(true)
-        println(result)
+        val jump1 = shard.generate(ChartConfiguration(-660, mutableListOf())) {
+            timing(0, 126, 4)
+        }
 
-        // or directly save to file
+        shard.feed(
+            ControllerBrand("ArcadePlus", "0.5.3"), mutableMapOf(
+                "globalOffset" to ShardDigestion.Union(260279L),
+                "fps" to ShardDigestion.Union(120),
+                "bpm" to ShardDigestion.Union(60.0),
+                "timingStart" to ShardDigestion.Union.Restriction.fromTiming(183333),
+                "timingEnd" to ShardDigestion.Union.Restriction.fromTiming(184285),
+                "positionStart" to ShardDigestion.Union.Restriction.fromPosition(0.75 pos 0.00),
+                "positionEnd" to ShardDigestion.Union.Restriction.fromPosition(1 pos 1),
+                "showFirstFrame" to ShardDigestion.Union(true),
+                "control" to ShardDigestion.Union("0:2000")
+            )
+        )
+
+        // only in testing units there is a need to append chart configuration and main timing command
+        val jump2 = shard.generate(ChartConfiguration(-660, mutableListOf())) {
+            timing(0, 126, 4)
+        }.chart
+
+        // append `jump2` to `jump1`
+        jump1.chart.subTiming.putAll(jump2.subTiming)
+
+        // directly save to file
         file(".", "result", "2.aff").let {
             if (!it.exists()) file(".", "result").mkdirs()
-            it.writeText(result)
+            it.writeText(jump1.generateString())
         }
+
+        // or print to console
+        println(jump1.generateString())
     }
 }
