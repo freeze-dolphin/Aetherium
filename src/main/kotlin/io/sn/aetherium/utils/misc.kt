@@ -24,10 +24,19 @@ fun easePos(aPos: Position, bPos: Position, easingFunction: EasingFunction, prog
 }
 
 fun Position.offsetWith(x: Double, y: Double): Position {
-    return this.apply {
-        this.x + x
-        this.y + y
-    }
+    return this.x + x pos this.y + y
+}
+
+fun composeNotes(closure: Difficulty.() -> Unit): List<Note> {
+    val diff = Difficulty()
+    closure.invoke(diff)
+    return diff.chart.mainTiming.getNotes()
+}
+
+fun composeChart(closure: Difficulty.() -> Unit): Chart {
+    val diff = Difficulty()
+    closure.invoke(diff)
+    return diff.chart
 }
 
 fun comment(cons: Consumer<Any>) {
