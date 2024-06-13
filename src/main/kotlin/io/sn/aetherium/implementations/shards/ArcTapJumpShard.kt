@@ -21,13 +21,18 @@ class ArcTapJumpShard : AetheriumShard() {
         }
 
     override val digestionInfo: ShardDigestionArgsInfo = ShardDigestionArgsInfo {
-        addInfo("globalOffset", ShardDigestionArgsInfo.Item.Type.LONG, ShardDigestion.Union.Restriction.songGlobalOffsetPlaceholder, "Anim: Global Offset") {
+        addInfo(
+            "globalOffset",
+            ShardDigestionArgsInfo.Item.Type.LONG,
+            ShardDigestion.Union.Restriction.songGlobalOffsetPlaceholder,
+            "Anim: Global Offset"
+        ) {
             zhHans = "帧动画: 歌曲长度"
         }
         addInfo("fps", ShardDigestionArgsInfo.Item.Type.INT, ShardDigestion.Union(60), "Anim: FPS") {
             zhHans = "帧动画: 质量 (FPS)"
         }
-        addInfo("bpm", ShardDigestionArgsInfo.Item.Type.DOUBLE, "Anim: BPM") {
+        addInfo("bpm", ShardDigestionArgsInfo.Item.Type.DOUBLE, ShardDigestion.Union.Restriction.songBpmPlaceholder, "Anim: BPM") {
             zhHans = "帧动画: BPM"
         }
         addInfo(

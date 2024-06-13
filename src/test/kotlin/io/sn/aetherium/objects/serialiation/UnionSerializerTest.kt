@@ -20,6 +20,7 @@ class UnionSerializerTest {
         "doubleArr" testType ShardDigestion.Union(arrayOf(1.0, 2.0, 3.5, 4.6))
         "stringArr" testType ShardDigestion.Union("Two three three")
         "globalOffsetPh" testType ShardDigestion.Union.Restriction.songGlobalOffsetPlaceholder
+        "timingAterSixSec" testType ShardDigestion.Union.Restriction.editorDelayTiming(6000)
 
         /*
         timing - {"timingValue":-601000}

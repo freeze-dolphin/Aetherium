@@ -11,10 +11,10 @@ fun genAnimationTrace(timing: Long, startPosition: Position, endPosition: Positi
     return genTrace(timing, timing, startPosition, endPosition)
 }
 
-fun Difficulty.quickArctap(time: Number, position: Position): Note {
+fun Difficulty.quickArctap(time: Number, position: Position): ArcNote {
     return arcNote(time.toLong() - 1, time.toLong(), position.toPair(), this.s, position.toPair()) {
         arctap(time.toLong())
-    }
+    } as ArcNote
 }
 
 fun easePos(aPos: Position, bPos: Position, easingFunction: EasingFunction, progress: Double): Position {

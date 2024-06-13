@@ -1,12 +1,13 @@
+val affComposeVersion: String = "7adb22767e"
 val kotlinVersion: String by project
-val affComposeVersion: String by project
 val ktorVersion: String by project
 val ktomlVersion: String by project
+val kamlVersion: String by project
 val logbackVersion: String by project
 val xmlutilVersion: String by project
 
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm") version "2.0.0-RC1"
     kotlin("plugin.serialization") version "1.9.23"
     id("io.ktor.plugin") version "2.3.10"
 
@@ -32,6 +33,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("com.akuleshov7:ktoml-core:${ktomlVersion}")
     implementation("com.akuleshov7:ktoml-file:${ktomlVersion}")
+    implementation("com.charleskorn.kaml:kaml:${kamlVersion}")
     testImplementation("io.ktor:ktor-server-tests-jvm")
 
     implementation("org.reflections:reflections:0.10.2")
