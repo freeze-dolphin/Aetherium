@@ -95,3 +95,15 @@ at [ArcTapJumpShard.kt](src/main/kotlin/io/sn/aetherium/implementations/shards/A
 
 Please check out [ArcTapJumpShardTest.kt](src/test/kotlin/io/sn/aetherium/implementations/shards/ArcTapJumpShardTest.kt), which is a testing
 unit written for the internal plugin [ArcTapJumpShard.kt](src/main/kotlin/io/sn/aetherium/implementations/shards/ArcTapJumpShard.kt)
+
+## Etoile Resurrection
+
+USAGE: `java -cp <PATH TO Aetherium.jar> io.sn.aetherium.implementations.crystals.EtoileRessurectionKt <PREFIX> <MODE> [arcpkgs]`
+
+Available Modes:
+
+- SIMPLIFIED: extract backgrounds, ignore if existed
+- PRECISE: use tree structure to store backgrounds, you may need to manually set backgrounds later
+- OVERWRITE: extract backgrounds, overwrite if existed
+- AUTO_RENAME: add prefix to filenames to avoid conflicts
+  The convert result will be in `$PWD/result/`

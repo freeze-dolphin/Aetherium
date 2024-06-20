@@ -25,6 +25,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.properties.Delegates
+import kotlin.system.exitProcess
 
 @Serializable
 data class Songlist(
@@ -728,5 +729,24 @@ class ArcpkgConvert(
 }
 
 fun main(args: Array<String>) {
-    ArcpkgConvert(args.sliceArray(1 until args.size), args[0]).exec()
+    val usage: Array<String> = arrayOf(
+        "Etoile Resurrection",
+        "USAGE: java -cp <PATH TO Aetherium.jar> io.sn.aetherium.implementations.crystals.EtoileRessurectionKt <PREFIX> <MODE> [arcpkgs]",
+        "Available Modes:",
+        " - SIMPLIFIED: extract backgrounds, ignore if existed",
+        " - PRECISE: use tree structure",
+        " - OVERWRITE: extract backgrounds, overwrite if existed",
+        " - AUTO_RENAME: add prefix to filenames to avoid conflicts",
+        "The convert result will be in `\$PWD/result/`"
+    )
+
+    if (args.size < 3) {
+        usage.forEach(System.out::println)
+        exitProcess(0)
+    }
+
+    val arcpkgs = args.sliceArray(2 until args.size)
+    val prefix = args[0]
+    val mode = ExportBgMode.valueOf(args[1])
+    ArcpkgConvert(arcpkgs, prefix, ExportConfiguration(exportBgMode = mode)).exec()
 }
