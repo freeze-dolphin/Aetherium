@@ -138,7 +138,7 @@ data class ExportConfiguration(
     val exportBgMode: ExportBgMode = ExportBgMode.SIMPLIFIED,
 )
 
-class ArcpkgConvert(
+class ArcpkgConvertRequest(
     private val arcpkgs: Array<String>,
     private val identifierPrefix: String,
     private val exportConfiguration: ExportConfiguration = ExportConfiguration()
@@ -748,5 +748,5 @@ fun main(args: Array<String>) {
     val arcpkgs = args.sliceArray(2 until args.size)
     val prefix = args[0]
     val mode = ExportBgMode.valueOf(args[1])
-    ArcpkgConvert(arcpkgs, prefix, ExportConfiguration(exportBgMode = mode)).exec()
+    ArcpkgConvertRequest(arcpkgs, prefix, ExportConfiguration(exportBgMode = mode)).exec()
 }
