@@ -325,7 +325,7 @@ class ArcpkgConvert(
             "align", "allcaps", "alpha", "b", "br", "color", "cspace", "font", "font-weight", "gradient", "i",
             "indent", "line-height", "line-indent", "link", "lowercase", "margin", "mark", "mspace", "nobr",
             "noparse", "page", "pos", "rotate", "s", "size", "smallcaps", "space", "sprite", "strikethrough",
-            "style", "sub", "sup", "u", "uppercase", "voffset", "width"
+            "style", "sub", "sup", "u", "uppercase", "voffset", "width", "color"
         )
 
         private val regexPattern = unityRichTextTags.joinToString(separator = "|", prefix = "</?(", postfix = ")=?[^>]*?>").toRegex()
