@@ -1,4 +1,4 @@
-val affComposeVersion: String = "7adb22767e"
+val affComposeVersion: String = "11ab9d8e92"
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val ktomlVersion: String by project

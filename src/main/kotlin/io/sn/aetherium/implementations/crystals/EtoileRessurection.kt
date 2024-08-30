@@ -148,7 +148,11 @@ class ArcpkgConvertRequest(
         prettyPrint = true
     }
 
-    private val yaml = Yaml.default
+    private val yaml = Yaml(
+        configuration = YamlConfiguration(
+            allowAnchorsAndAliases = true // fix #3
+        )
+    )
 
     companion object {
 
