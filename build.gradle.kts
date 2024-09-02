@@ -1,3 +1,5 @@
+import java.io.ByteArrayOutputStream
+
 val affComposeVersion: String = "11ab9d8e92"
 val kotlinVersion: String by project
 val ktorVersion: String by project
@@ -47,6 +49,15 @@ java {
     }
 }
 
+fun getGitCommitHash(): String {
+    val stdout = ByteArrayOutputStream()
+    exec {
+        commandLine("git", "rev-parse", "--short", "HEAD") // 获取短格式的提交哈希
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 application {
     mainClass.set("io.sn.aetherium.GenesisKt")
 
@@ -55,8 +66,31 @@ application {
         listOf("-Dio.ktor.development=$isDevelopment")
 }
 
+distributions.main {
+    distributionBaseName = "Aetherium-${getGitCommitHash()}"
+}
+
 tasks.named<Test>("test") {
     useJUnitPlatform()
+}
+
+val createEtoileScriptsTask = tasks.create<CreateStartScripts>("createEtoileScripts") {
+    mainClass = "io.sn.aetherium.implementations.crystals.EtoileRessurectionKt"
+    applicationName = "Etoile"
+    outputDir = file("${layout.projectDirectory.dir("build")}/tmp/scripts")
+    classpath = sourceSets.main.get().runtimeClasspath
+}
+
+tasks.named("distZip") {
+    dependsOn(createEtoileScriptsTask)
+}
+
+tasks.named("distTar") {
+    dependsOn(createEtoileScriptsTask)
+}
+
+application.applicationDistribution.from("${layout.projectDirectory.dir("build")}/tmp/scripts") {
+    into("bin")
 }
 
 publishing {
