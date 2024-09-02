@@ -59,10 +59,12 @@ class ArcTapJumpShardTest {
         jump1.chart.subTiming.putAll(jump2.subTiming)
 
         // directly save to file
+        /*
         file(".", "result", "2.aff").let {
             if (!it.exists()) file(".", "result").mkdirs()
             it.writeText(jump1.generateString())
         }
+         */
 
         // or print to console
         println(jump1.generateString())

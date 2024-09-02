@@ -3,7 +3,6 @@ package io.sn.aetherium.implementations
 import com.tairitsu.compose.arcaea.Chart
 import com.tairitsu.compose.arcaea.timing
 import io.sn.aetherium.utils.composeChart
-import java.io.File
 import kotlin.test.Test
 
 class TimingGroupDisassemblerTest {
@@ -13,7 +12,11 @@ class TimingGroupDisassemblerTest {
         val toDisasm = Chart.fromAff(toDisasm)
 
         composeChart {
-            val timing = timing(toDisasm.mainTiming.getTimings()[0].offset, toDisasm.mainTiming.getTimings()[0].bpm, toDisasm.mainTiming.getTimings()[0].beats)
+            val timing = timing(
+                toDisasm.mainTiming.getTimings()[0].offset,
+                toDisasm.mainTiming.getTimings()[0].bpm,
+                toDisasm.mainTiming.getTimings()[0].beats
+            )
 
             toDisasm.mainTiming.disassemble(5) {
                 timing
@@ -23,7 +26,7 @@ class TimingGroupDisassemblerTest {
                 chart.subTiming.putAll(it)
             }
         }.serializeForArcaea().let {
-            File("./result/0.aff").writeText(it)
+            println(it)
         }
     }
 
