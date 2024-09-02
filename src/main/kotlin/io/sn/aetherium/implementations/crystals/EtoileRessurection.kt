@@ -329,14 +329,15 @@ class ArcpkgConvertRequest(
             "align", "allcaps", "alpha", "b", "br", "color", "cspace", "font", "font-weight", "gradient", "i",
             "indent", "line-height", "line-indent", "link", "lowercase", "margin", "mark", "mspace", "nobr",
             "noparse", "page", "pos", "rotate", "s", "size", "smallcaps", "space", "sprite", "strikethrough",
-            "style", "sub", "sup", "u", "uppercase", "voffset", "width", "color"
+            "style", "sub", "sup", "u", "uppercase", "voffset", "width"
         )
 
-        private val regexPattern = unityRichTextTags.joinToString(separator = "|", prefix = "</?(", postfix = ")=?[^>]*?>").toRegex()
-
-
-        fun removeUnityRichTextTags(input: String): String {
-            return input.replace(regexPattern, "")
+        private fun removeUnityRichTextTags(input: String): String {
+            var rst = input
+            unityRichTextTags.forEach { tag ->
+                rst = rst.replace("</?$tag=[^>]+>|</$tag>|<$tag>".toRegex(), "")
+            }
+            return rst
         }
 
         fun resizeImage(originalImage: BufferedImage, targetWidth: Int, targetHeight: Int): BufferedImage {
@@ -411,10 +412,10 @@ class ArcpkgConvertRequest(
                 val jacketPath = chart content "jacketPath"
                 val baseBpm = (chart content "baseBpm").toFloat()
                 val bpmText = chart content "bpmText"
-                val title = LocalizedString(chart content "title")
-                val artist = (chart nullableContent "composer") ?: ""
+                val title = LocalizedString(removeUnityRichTextTags(chart content "title"))
+                val artist = removeUnityRichTextTags((chart nullableContent "composer") ?: "")
                 val charter = removeUnityRichTextTags((chart nullableContent "alias") ?: "")
-                val jacketDesigner = (chart nullableContent "illustrator") ?: ""
+                val jacketDesigner = removeUnityRichTextTags((chart nullableContent "illustrator") ?: "")
 
                 var rating by Delegates.notNull<Int>()
                 var ratingPlus by Delegates.notNull<Boolean>()
