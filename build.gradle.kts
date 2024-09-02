@@ -78,7 +78,7 @@ val createEtoileScriptsTask = tasks.create<CreateStartScripts>("createEtoileScri
     mainClass = "io.sn.aetherium.implementations.crystals.EtoileRessurectionKt"
     applicationName = "Etoile"
     outputDir = file("${layout.projectDirectory.dir("build")}/tmp/scripts")
-    classpath = sourceSets.main.get().runtimeClasspath
+    classpath = files("Aetherium.jar").plus(sourceSets.main.get().compileClasspath)
 }
 
 tasks.named("distZip") {
