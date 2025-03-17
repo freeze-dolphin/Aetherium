@@ -36,6 +36,7 @@ dependencies {
     implementation("com.akuleshov7:ktoml-core:${ktomlVersion}")
     implementation("com.akuleshov7:ktoml-file:${ktomlVersion}")
     implementation("com.charleskorn.kaml:kaml:${kamlVersion}")
+    implementation("com.github.ajalt.clikt:clikt:5.0.3")
     testImplementation("io.ktor:ktor-server-tests-jvm")
 
     implementation("org.reflections:reflections:0.10.2")
@@ -72,25 +73,6 @@ distributions.main {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
-}
-
-val createEtoileScriptsTask = tasks.create<CreateStartScripts>("createEtoileScripts") {
-    mainClass = "io.sn.aetherium.implementations.crystals.EtoileRessurectionKt"
-    applicationName = "Etoile"
-    outputDir = file("${layout.projectDirectory.dir("build")}/tmp/scripts")
-    classpath = files("Aetherium.jar").plus(sourceSets.main.get().runtimeClasspath)
-}
-
-tasks.named("distZip") {
-    dependsOn(createEtoileScriptsTask)
-}
-
-tasks.named("distTar") {
-    dependsOn(createEtoileScriptsTask)
-}
-
-application.applicationDistribution.from("${layout.projectDirectory.dir("build")}/tmp/scripts") {
-    into("bin")
 }
 
 publishing {
